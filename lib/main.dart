@@ -18,9 +18,9 @@ void main() async {
   try {
     // Inicializa Firebase con la configuración del google-services.json
     await Firebase.initializeApp();
-    print("Firebase conectado con éxito");
+    debugPrint("Firebase conectado con éxito");
   } catch (e) {
-    print("Error crítico al conectar con Firebase: $e");
+    debugPrint("Error crítico al conectar con Firebase: $e");
   }
 
   await NotificationService().initialize();
