@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Añadido
-import 'package:cloud_firestore/cloud_firestore.dart'; // Añadido
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'terms_conditions_page.dart';
 import 'help_page.dart';
 import 'edit_profile_page.dart';
@@ -20,15 +20,14 @@ class _ProfilePageState extends State<ProfilePage> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
-  // Variables para datos reales
   String _userName = "Cargando...";
-  String _userEmail = "";
+  String _userTag = "@user...";
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // Cargar datos al entrar
+    _loadUserData();
   }
 
   // Obtener datos de Firebase
@@ -44,14 +43,14 @@ class _ProfilePageState extends State<ProfilePage> {
         if (userData.exists) {
           setState(() {
             _userName = userData['nombre'] ?? "Sin nombre";
-            _userEmail = user.email ?? "";
+            _userTag = "@${userData['username'] ?? 'usuario'}";
             _isLoading = false;
           });
         }
       } catch (e) {
         setState(() {
           _userName = "Usuario";
-          _userEmail = user.email ?? "";
+          _userTag = "@usuario";
           _isLoading = false;
         });
       }
@@ -162,7 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () async {
-                          await FirebaseAuth.instance.signOut(); // Logout real
+                          await FirebaseAuth.instance.signOut();
                           Navigator.pushNamedAndRemoveUntil(
                             context,
                             '/login',
@@ -203,12 +202,12 @@ class _ProfilePageState extends State<ProfilePage> {
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // Muestra carga
+          ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
                 const SizedBox(height: 20),
                 GestureDetector(
-                  onTap: _showImageSourceActionSheet, // El error desaparecerá
+                  onTap: _showImageSourceActionSheet,
                   child: Stack(
                     alignment: Alignment.bottomRight,
                     children: [
@@ -248,9 +247,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 ), // Nombre real
                 const SizedBox(height: 4),
                 Text(
-                  _userEmail,
+                  _userTag,
                   style: const TextStyle(fontSize: 14, color: Colors.black54),
-                ), // Email real
+                ),
                 const SizedBox(height: 30),
                 Expanded(
                   child: ListView(

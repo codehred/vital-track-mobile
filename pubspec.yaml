@@ -42,7 +42,11 @@ dependencies:
   cupertino_icons: ^1.0.8
   image_picker: ^0.8.7+5
   flutter_launcher_icons: ^0.14.4
-
+  health:
+    git:
+      url: https://github.com/cph-cachet/flutter-plugins.git
+      path: packages/health
+  permission_handler: ^11.0.0
   email_validator: ^2.1.17
   
   # UUID para dispositivos IoT
@@ -73,6 +77,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+
 
 
   # To add assets to your application, add an assets section, like this:

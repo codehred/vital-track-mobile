@@ -11,15 +11,14 @@ class Register extends StatefulWidget {
 }
 
 class _RegisterState extends State<Register> {
-  // Controladores para capturar el texto
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   final TextEditingController _deviceIdController = TextEditingController();
 
-  // Función para mostrar el popup de error con animación y fondo oscurecido
   void _showErrorPopup(String message) {
     showGeneralDialog(
       context: context,
@@ -52,7 +51,10 @@ class _RegisterState extends State<Register> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Entendido'),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(color: Color(0xFF7DC3DE)),
+                    ),
                   ),
                 ],
               ),
@@ -69,16 +71,20 @@ class _RegisterState extends State<Register> {
     );
   }
 
-  // Lógica de registro real con Firebase
   Future<void> _handleRegister() async {
     String name = _nameController.text.trim();
+    String username = _usernameController.text.trim();
     String email = _emailController.text.trim();
     String pass = _passwordController.text;
     String confirmPass = _confirmPasswordController.text;
     String deviceId = _deviceIdController.text.trim();
 
-    // 1. Validaciones locales básicas
-    if (name.isEmpty || email.isEmpty || pass.isEmpty || deviceId.isEmpty) {
+    // Validaciones locales básicas
+    if (name.isEmpty ||
+        username.isEmpty ||
+        email.isEmpty ||
+        pass.isEmpty ||
+        deviceId.isEmpty) {
       _showErrorPopup('Por favor, completa todos los campos obligatorios (*).');
       return;
     }
@@ -92,30 +98,25 @@ class _RegisterState extends State<Register> {
     }
 
     try {
-      // 2. CREAR USUARIO EN FIREBASE AUTH
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: pass);
 
-      // 3. ENVIAR CORREO DE VERIFICACIÓN
       await userCredential.user?.sendEmailVerification();
 
-      // 4. GUARDAR DATOS EN FIRESTORE
-      // Usamos el UID único de Firebase para identificar al usuario en la base de datos
       await FirebaseFirestore.instance
           .collection('usuarios')
           .doc(userCredential.user?.uid)
           .set({
             'nombre': name,
+            'usuario': username,
             'email': email,
             'dispositivo_id': deviceId,
             'fecha_creacion': DateTime.now(),
             'verificado': false,
           });
 
-      // 5. Mostrar pantalla de éxito/espera de verificación
       _showVerificationScreen();
     } on FirebaseAuthException catch (e) {
-      // Errores específicos de Firebase
       if (e.code == 'weak-password') {
         _showErrorPopup('La contraseña es muy débil.');
       } else if (e.code == 'email-already-in-use') {
@@ -162,6 +163,12 @@ class _RegisterState extends State<Register> {
             const SizedBox(height: 20),
             _buildTextField("Nombre Completo *", _nameController, Icons.person),
             _buildTextField(
+              "Usuario *",
+              _nameController,
+              Icons.person,
+              hint: "Ej: user123",
+            ),
+            _buildTextField(
               "Correo Electrónico *",
               _emailController,
               Icons.email,
@@ -171,7 +178,7 @@ class _RegisterState extends State<Register> {
               "Identificador de Dispositivo *",
               _deviceIdController,
               Icons.watch,
-              hint: "Ej: Reloj_Karol (Para separar tus datos)",
+              hint: "Ej: Reloj_1 (Para separar tus datos)",
             ),
             _buildTextField(
               "Contraseña *",
@@ -191,10 +198,9 @@ class _RegisterState extends State<Register> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
+                  backgroundColor: Color(0xFF7DC3DE),
                 ),
-                onPressed:
-                    _handleRegister, // Llamamos a la función asíncrona corregida
+                onPressed: _handleRegister,
                 child: const Text(
                   'Registrarse',
                   style: TextStyle(color: Colors.white, fontSize: 18),

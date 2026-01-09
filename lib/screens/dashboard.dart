@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'profile_page.dart';
 import 'history.page.dart';
 import 'alert_page.dart';
+import 'package:health/health.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -56,8 +58,96 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  Health health = Health();
+
+  @override
+  void initState() {
+    super.initState();
+    _autorizarYLeerDatos();
+  }
+
+  Future<void> _autorizarYLeerDatos() async {
+    List<HealthDataType> types = [
+      HealthDataType.HEART_RATE,
+      HealthDataType.BLOOD_OXYGEN,
+      HealthDataType.STEPS,
+    ];
+
+    // Definimos permisos de lectura explícitos para la versión 10.x
+    List<HealthDataAccess> permissions = types
+        .map((e) => HealthDataAccess.READ)
+        .toList();
+
+    try {
+      // 1. Pedir autorización
+      bool authorized = await health.requestAuthorization(
+        types,
+        permissions: permissions,
+      );
+
+      if (authorized) {
+        DateTime now = DateTime.now();
+        DateTime yesterday = now.subtract(const Duration(hours: 24));
+
+        // 2. Obtener datos con parámetros nombrados
+        List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(
+          startTime: yesterday,
+          endTime: now,
+          types: types,
+        );
+
+        // 3. Procesar y actualizar la UI
+        setState(() {
+          for (var data in healthData) {
+            String valorString = "0";
+
+            // Extraemos el valor numérico de forma genérica
+            final value = data.value;
+            if (value is NumericHealthValue) {
+              valorString = value.numericValue.toInt().toString();
+            }
+
+            // Asignación a los índices de tu lista vitalsData
+            if (data.type == HealthDataType.HEART_RATE) {
+              vitalsData[0]['value'] = valorString; // BPM
+            } else if (data.type == HealthDataType.BLOOD_OXYGEN) {
+              vitalsData[1]['value'] = valorString; // SpO2
+            } else if (data.type == HealthDataType.STEPS) {
+              vitalsData[3]['value'] = valorString; // PASOS
+            }
+          }
+        });
+      } else {
+        debugPrint("Permisos denegados por el usuario");
+      }
+    } catch (e) {
+      debugPrint("Error crítico en salud: $e");
+    }
+  }
+
+  List<Map<String, dynamic>> vitalsData = [
+    {'icon': Icons.favorite, 'label': 'BPM', 'value': '--', 'unit': 'lpm'},
+    {'icon': Icons.water_drop, 'label': 'SpO₂', 'value': '--', 'unit': '%'},
+    {
+      'icon': Icons.psychology,
+      'label': 'ESTRÉS',
+      'value': '--',
+      'unit': '/100',
+    },
+    {
+      'icon': Icons.directions_walk,
+      'label': 'PASOS',
+      'value': '--',
+      'unit': '',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -74,12 +164,10 @@ class HomePage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AlertsPage()),
-                );
-              },
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AlertsPage()),
+              ),
               icon: const Icon(Icons.notifications_none, color: Colors.white),
               label: const Text(
                 'ALERTAS',
@@ -99,17 +187,24 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            GridView.count(
+            GridView.builder(
               shrinkWrap: true,
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              children: const [
-                VitalCard(icon: Icons.favorite, label: 'BPM'),
-                VitalCard(icon: Icons.thermostat, label: '°C'),
-                VitalCard(icon: Icons.water_drop, label: 'SpO₂'),
-                VitalCard(icon: Icons.air, label: 'RPM'),
-              ],
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: vitalsData.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.1,
+              ),
+              itemBuilder: (context, index) {
+                return VitalCard(
+                  icon: vitalsData[index]['icon'],
+                  label: vitalsData[index]['label'],
+                  value: vitalsData[index]['value'],
+                  unit: vitalsData[index]['unit'],
+                );
+              },
             ),
             const SizedBox(height: 20),
             Container(
@@ -136,8 +231,16 @@ class HomePage extends StatelessWidget {
 class VitalCard extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String value;
+  final String unit;
 
-  const VitalCard({super.key, required this.icon, required this.label});
+  const VitalCard({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +267,32 @@ class VitalCard extends StatelessWidget {
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.grey,
+                fontSize: 16,
               ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  unit,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

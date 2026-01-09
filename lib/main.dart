@@ -6,17 +6,15 @@ import 'screens/login.dart';
 import 'screens/dashboard.dart';
 import 'screens/forgot_password.dart';
 import 'screens/register.dart';
-import 'screens/profile_page.dart'; // Nueva importación
-import 'screens/edit_profile_page.dart'; // Nueva importación
-import 'screens/change_password_page.dart'; // Nueva importación
+import 'screens/profile_page.dart';
+import 'screens/edit_profile_page.dart';
+import 'screens/change_password_page.dart';
 import 'screens/notification_service.dart';
 
 void main() async {
-  // Asegura que los servicios nativos de Flutter (como Firebase) estén listos
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inicializa Firebase con la configuración del google-services.json
     await Firebase.initializeApp();
     debugPrint("Firebase conectado con éxito");
   } catch (e) {
@@ -38,23 +36,31 @@ class VitalTrackApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blueGrey,
         fontFamily: 'Arial',
-        useMaterial3: true, // Habilita el diseño moderno de Android
+        useMaterial3: true,
       ),
-      // Lógica para determinar la pantalla inicial
       initialRoute: FirebaseAuth.instance.currentUser != null
           ? '/dashboard'
           : '/',
+
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/dashboard': (context) => const DashboardPage(),
         '/forgot_password': (context) => const ForgotPassword(),
         '/register': (context) => const Register(),
-
-        // Rutas del perfil necesarias para navegar correctamente
         '/profile': (context) => const ProfilePage(),
         '/edit_profile': (context) => const EditProfilePage(),
-        '/change_password': (context) => const ChangePasswordPage(),
+      },
+
+      // manejo dinámico / parámetros
+      onGenerateRoute: (settings) {
+        if (settings.name == '/change_password') {
+          final args = settings.arguments as String?;
+          return MaterialPageRoute(
+            builder: (context) => ChangePasswordPage(email: args ?? ""),
+          );
+        }
+        return null;
       },
     );
   }
