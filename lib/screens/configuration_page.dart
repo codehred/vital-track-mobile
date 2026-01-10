@@ -38,7 +38,6 @@ class ConfigurationPage extends StatelessWidget {
             title: const Text('Cambiar Contraseña'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              // Verificamos que el email no sea nulo antes de navegar
               if (userEmail != null) {
                 Navigator.push(
                   context,
@@ -64,9 +63,7 @@ class ConfigurationPage extends StatelessWidget {
               style: TextStyle(color: Colors.red),
             ),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              //agregar funcionalidad de borrar cuenta
-            },
+            onTap: () {},
           ),
         ],
       ),

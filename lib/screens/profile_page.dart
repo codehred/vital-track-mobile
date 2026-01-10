@@ -43,7 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (userData.exists) {
           setState(() {
             _userName = userData['nombre'] ?? "Sin nombre";
-            _userTag = "@${userData['username'] ?? 'usuario'}";
+            _userTag = "@${userData['usuario'] ?? 'usuario'}";
             _isLoading = false;
           });
         }
@@ -154,7 +154,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         style: TextButton.styleFrom(
                           backgroundColor: Colors.grey[200],
                         ),
-                        child: const Text('Cancelar'),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(color: Colors.black),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -162,14 +165,17 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: ElevatedButton(
                         onPressed: () async {
                           await FirebaseAuth.instance.signOut();
+
+                          if (!mounted) return;
+
                           Navigator.pushNamedAndRemoveUntil(
                             context,
-                            '/login',
+                            '/',
                             (route) => false,
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryBlue,
+                          backgroundColor: const Color(0xFF7DC3DE),
                         ),
                         child: const Text(
                           'Sí, Salir',
@@ -244,7 +250,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
-                ), // Nombre real
+                ),
                 const SizedBox(height: 4),
                 Text(
                   _userTag,

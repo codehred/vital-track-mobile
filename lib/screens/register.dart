@@ -79,7 +79,6 @@ class _RegisterState extends State<Register> {
     String confirmPass = _confirmPasswordController.text;
     String deviceId = _deviceIdController.text.trim();
 
-    // Validaciones locales básicas
     if (name.isEmpty ||
         username.isEmpty ||
         email.isEmpty ||
@@ -164,7 +163,7 @@ class _RegisterState extends State<Register> {
             _buildTextField("Nombre Completo *", _nameController, Icons.person),
             _buildTextField(
               "Usuario *",
-              _nameController,
+              _usernameController,
               Icons.person,
               hint: "Ej: user123",
             ),

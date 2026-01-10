@@ -3,7 +3,6 @@ import 'profile_page.dart';
 import 'history.page.dart';
 import 'alert_page.dart';
 import 'package:health/health.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -80,47 +79,50 @@ class _HomePageState extends State<HomePage> {
       HealthDataType.STEPS,
     ];
 
-    // Definimos permisos de lectura explícitos para la versión 10.x
     List<HealthDataAccess> permissions = types
-        .map((e) => HealthDataAccess.READ)
+        .map((e) => HealthDataAccess.READ_WRITE)
         .toList();
 
     try {
-      // 1. Pedir autorización
       bool authorized = await health.requestAuthorization(
         types,
         permissions: permissions,
       );
+      print("Estado de autorización: $authorized");
 
       if (authorized) {
         DateTime now = DateTime.now();
         DateTime yesterday = now.subtract(const Duration(hours: 24));
 
-        // 2. Obtener datos con parámetros nombrados
         List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(
           startTime: yesterday,
           endTime: now,
           types: types,
         );
 
-        // 3. Procesar y actualizar la UI
         setState(() {
+          if (healthData.isEmpty) {
+            debugPrint(
+              "Atención: No se recuperaron datos de salud de las últimas 24h.",
+            );
+          }
+
           for (var data in healthData) {
             String valorString = "0";
-
-            // Extraemos el valor numérico de forma genérica
             final value = data.value;
+
             if (value is NumericHealthValue) {
               valorString = value.numericValue.toInt().toString();
+            } else {
+              valorString = value.toString();
             }
 
-            // Asignación a los índices de tu lista vitalsData
             if (data.type == HealthDataType.HEART_RATE) {
-              vitalsData[0]['value'] = valorString; // BPM
+              vitalsData[0]['value'] = valorString;
             } else if (data.type == HealthDataType.BLOOD_OXYGEN) {
-              vitalsData[1]['value'] = valorString; // SpO2
+              vitalsData[1]['value'] = valorString;
             } else if (data.type == HealthDataType.STEPS) {
-              vitalsData[3]['value'] = valorString; // PASOS
+              vitalsData[3]['value'] = valorString;
             }
           }
         });

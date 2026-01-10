@@ -41,18 +41,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       if (userData.exists && mounted) {
         setState(() {
           _nameController.text = userData['nombre'] ?? '';
-          _userController.text = userData['username'] ?? '';
+          _userController.text = userData['usuario'] ?? '';
           _emailController.text = user.email ?? '';
           _birthController.text = userData['fecha_nacimiento'] ?? '';
         });
       } else {
-        // Si el documento no existe en Firestore, al menos cargamos el email del Auth
         _emailController.text = user.email ?? '';
       }
     } catch (e) {
       debugPrint("Error al cargar datos: $e");
     } finally {
-      // El bloque finally asegura que el círculo de carga desaparezca siempre
       if (mounted) {
         setState(() => _isLoading = false);
       }
