@@ -217,7 +217,7 @@ class _ProfileField extends StatelessWidget {
               filled: true,
               fillColor: enabled ? const Color(0xFFE5F4FB) : Colors.grey[200],
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(18),
                 borderSide: BorderSide.none,
               ),
             ),

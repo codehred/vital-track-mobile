@@ -165,9 +165,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           hintText: 'Correo Electrónico',
                           filled: true,
                           fillColor: Colors.grey[100],
-                          prefixIcon: const Icon(Icons.email_outlined),
+                          prefixIcon: const Icon(
+                            Icons.email_outlined,
+                            color: Color(0xFF6BB6D6),
+                          ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(30),
                             borderSide: BorderSide.none,
                           ),
                         ),
@@ -181,9 +184,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           hintText: 'Contraseña',
                           filled: true,
                           fillColor: Colors.grey[100],
-                          prefixIcon: const Icon(Icons.lock_outline),
+                          prefixIcon: const Icon(
+                            Icons.lock_outline,
+                            color: Color(0xFF6BB6D6),
+                          ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(25),
+                            borderRadius: BorderRadius.circular(30),
                             borderSide: BorderSide.none,
                           ),
                           suffixIcon: IconButton(
@@ -191,6 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               _obscureText
                                   ? Icons.visibility_off
                                   : Icons.visibility,
+                              color: Colors.grey[400],
                             ),
                             onPressed: () {
                               setState(() => _obscureText = !_obscureText);
@@ -204,10 +211,118 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
-                            onPressed: () => Navigator.pushNamed(
-                              context,
-                              '/forgot_password',
-                            ),
+                            onPressed: () {
+                              final TextEditingController resetEmailController =
+                                  TextEditingController();
+
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text("Recuperar Contraseña"),
+                                  backgroundColor: Color.fromARGB(
+                                    255,
+                                    255,
+                                    255,
+                                    255,
+                                  ),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        "Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.",
+                                      ),
+                                      const SizedBox(height: 10),
+                                      TextField(
+                                        controller: resetEmailController,
+                                        cursorColor: Colors.black,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        decoration: const InputDecoration(
+                                          labelText: "Correo electrónico",
+                                          floatingLabelStyle: TextStyle(
+                                            color: Colors.black,
+                                          ),
+                                          border: OutlineInputBorder(),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                              color: Colors.black,
+                                              width: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text(
+                                        "Cancelar",
+                                        style: TextStyle(
+                                          color: Color.fromARGB(255, 0, 0, 0),
+                                        ),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF7DC3DE,
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        final email = resetEmailController.text
+                                            .trim();
+                                        if (email.isEmpty) return;
+
+                                        try {
+                                          await FirebaseAuth.instance
+                                              .sendPasswordResetEmail(
+                                                email: email,
+                                              );
+
+                                          if (context.mounted) {
+                                            Navigator.pop(context);
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  "¡Correo enviado! Revisa tu bandeja de entrada (y spam).",
+                                                ),
+                                                backgroundColor: Colors.green,
+                                              ),
+                                            );
+                                          }
+                                        } on FirebaseAuthException catch (e) {
+                                          if (context.mounted) {
+                                            Navigator.pop(context);
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  "Error: ${e.message}",
+                                                ),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      child: const Text(
+                                        "Enviar Link",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                             child: const Text(
                               '¿Olvidaste tu contraseña?',
                               style: TextStyle(

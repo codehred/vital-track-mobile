@@ -70,7 +70,16 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Recuperar acceso")),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'Recuperar Acceso',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -83,7 +92,14 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             ElevatedButton(
               onPressed: _isLoading ? null : _enviarCodigoReal,
               child: _isLoading
-                  ? const CircularProgressIndicator()
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
                   : const Text("Enviar código"),
             ),
           ],

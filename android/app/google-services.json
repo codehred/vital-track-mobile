@@ -7,12 +7,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:724259485932:android:966f4bfd3e72979346cdc9",
+        "mobilesdk_app_id": "1:724259485932:android:fa9bd2647b1e377146cdc9",
         "android_client_info": {
-          "package_name": "com.example.vital_track_beta"
+          "package_name": "com.vitaltrack.health_app.v1"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "724259485932-rctvbqapaehbmrnlm3qvtl52n9lk2rcm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBPYwqiiEtt9gASVcP5bGmFaL3fRSEmssQ"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "724259485932-rctvbqapaehbmrnlm3qvtl52n9lk2rcm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

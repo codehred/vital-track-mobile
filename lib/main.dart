@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Para verificar sesión activa
+import 'package:firebase_auth/firebase_auth.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login.dart';
 import 'screens/dashboard.dart';
@@ -38,12 +38,22 @@ class VitalTrackApp extends StatelessWidget {
         fontFamily: 'Arial',
         useMaterial3: true,
       ),
-      initialRoute: FirebaseAuth.instance.currentUser != null
-          ? '/dashboard'
-          : '/',
+
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SplashScreen();
+          }
+          if (snapshot.hasData) {
+            return const DashboardPage();
+          }
+
+          return const LoginScreen();
+        },
+      ),
 
       routes: {
-        '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/dashboard': (context) => const DashboardPage(),
         '/forgot_password': (context) => const ForgotPassword(),
@@ -52,7 +62,6 @@ class VitalTrackApp extends StatelessWidget {
         '/edit_profile': (context) => const EditProfilePage(),
       },
 
-      // manejo dinámico / parámetros
       onGenerateRoute: (settings) {
         if (settings.name == '/change_password') {
           final args = settings.arguments as String?;

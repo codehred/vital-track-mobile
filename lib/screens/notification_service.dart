@@ -70,9 +70,12 @@ class NotificationService {
     final soundEnabled = prefs.getBool('notifications_sound') ?? true;
     final vibrationEnabled = prefs.getBool('notifications_vibration') ?? false;
 
+    final String channelId = _getChannelId(soundEnabled, vibrationEnabled);
+    final String channelName = _getChannelName(soundEnabled, vibrationEnabled);
+
     final androidDetails = AndroidNotificationDetails(
-      'vitaltrack_channel',
-      'VitalTrack Notifications',
+      channelId,
+      channelName,
       channelDescription: 'Notificaciones de signos vitales',
       importance: Importance.high,
       priority: Priority.high,
@@ -102,6 +105,30 @@ class NotificationService {
       details,
       payload: payload,
     );
+  }
+
+  String _getChannelId(bool sound, bool vibration) {
+    if (sound && vibration) {
+      return 'vitaltrack_sound_vibration';
+    } else if (sound && !vibration) {
+      return 'vitaltrack_sound_only';
+    } else if (!sound && vibration) {
+      return 'vitaltrack_vibration_only';
+    } else {
+      return 'vitaltrack_silent';
+    }
+  }
+
+  String _getChannelName(bool sound, bool vibration) {
+    if (sound && vibration) {
+      return 'VitalTrack - Sonido y Vibración';
+    } else if (sound && !vibration) {
+      return 'VitalTrack - Solo Sonido';
+    } else if (!sound && vibration) {
+      return 'VitalTrack - Solo Vibración';
+    } else {
+      return 'VitalTrack - Silencioso';
+    }
   }
 
   Future<void> showVitalSignAlert({

@@ -3,6 +3,7 @@ import 'profile_page.dart';
 import 'history.page.dart';
 import 'alert_page.dart';
 import 'package:health/health.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -66,82 +67,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Health health = Health();
 
-  @override
-  void initState() {
-    super.initState();
-    _autorizarYLeerDatos();
-  }
-
-  Future<void> _autorizarYLeerDatos() async {
-    List<HealthDataType> types = [
-      HealthDataType.HEART_RATE,
-      HealthDataType.BLOOD_OXYGEN,
-      HealthDataType.STEPS,
-    ];
-
-    List<HealthDataAccess> permissions = types
-        .map((e) => HealthDataAccess.READ_WRITE)
-        .toList();
-
-    try {
-      bool authorized = await health.requestAuthorization(
-        types,
-        permissions: permissions,
-      );
-      print("Estado de autorización: $authorized");
-
-      if (authorized) {
-        DateTime now = DateTime.now();
-        DateTime yesterday = now.subtract(const Duration(hours: 24));
-
-        List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(
-          startTime: yesterday,
-          endTime: now,
-          types: types,
-        );
-
-        setState(() {
-          if (healthData.isEmpty) {
-            debugPrint(
-              "Atención: No se recuperaron datos de salud de las últimas 24h.",
-            );
-          }
-
-          for (var data in healthData) {
-            String valorString = "0";
-            final value = data.value;
-
-            if (value is NumericHealthValue) {
-              valorString = value.numericValue.toInt().toString();
-            } else {
-              valorString = value.toString();
-            }
-
-            if (data.type == HealthDataType.HEART_RATE) {
-              vitalsData[0]['value'] = valorString;
-            } else if (data.type == HealthDataType.BLOOD_OXYGEN) {
-              vitalsData[1]['value'] = valorString;
-            } else if (data.type == HealthDataType.STEPS) {
-              vitalsData[3]['value'] = valorString;
-            }
-          }
-        });
-      } else {
-        debugPrint("Permisos denegados por el usuario");
-      }
-    } catch (e) {
-      debugPrint("Error crítico en salud: $e");
-    }
-  }
-
   List<Map<String, dynamic>> vitalsData = [
     {'icon': Icons.favorite, 'label': 'BPM', 'value': '--', 'unit': 'lpm'},
     {'icon': Icons.water_drop, 'label': 'SpO₂', 'value': '--', 'unit': '%'},
     {
-      'icon': Icons.psychology,
-      'label': 'ESTRÉS',
+      'icon': Icons.local_fire_department,
+      'label': 'CALORÍAS',
       'value': '--',
-      'unit': '/100',
+      'unit': 'kcal',
     },
     {
       'icon': Icons.directions_walk,
@@ -150,6 +83,106 @@ class _HomePageState extends State<HomePage> {
       'unit': '',
     },
   ];
+
+  List<FlSpot> chartSpots = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autorizarYLeerDatos();
+    });
+  }
+
+  Future<void> _autorizarYLeerDatos() async {
+    List<HealthDataType> types = [
+      HealthDataType.HEART_RATE,
+      HealthDataType.BLOOD_OXYGEN,
+      HealthDataType.STEPS,
+      HealthDataType.ACTIVE_ENERGY_BURNED,
+    ];
+
+    List<HealthDataAccess> permissions = types
+        .map((e) => HealthDataAccess.READ)
+        .toList();
+
+    try {
+      bool authorized = await health.requestAuthorization(
+        types,
+        permissions: permissions,
+      );
+      if (authorized) {
+        _obtenerDatos(types);
+      }
+    } catch (e) {
+      debugPrint("Error auth: $e");
+    }
+  }
+
+  Future<void> _obtenerDatos(List<HealthDataType> types) async {
+    DateTime now = DateTime.now();
+    DateTime yesterday = now.subtract(const Duration(hours: 24));
+    DateTime midnight = DateTime(now.year, now.month, now.day);
+
+    try {
+      List<HealthDataPoint> healthData = await health.getHealthDataFromTypes(
+        startTime: yesterday,
+        endTime: now,
+        types: types,
+      );
+
+      healthData = health.removeDuplicates(healthData);
+      healthData.sort((a, b) => a.dateFrom.compareTo(b.dateFrom));
+
+      double totalCalorias = 0;
+      int totalPasos = 0;
+      List<FlSpot> tempSpots = [];
+
+      setState(() {
+        for (var data in healthData) {
+          final value = data.value;
+
+          if (value is NumericHealthValue) {
+            // LÓGICA DE TARJETAS
+            if (data.type == HealthDataType.HEART_RATE) {
+              double bpm = value.numericValue.toDouble();
+              vitalsData[0]['value'] = bpm.round().toString();
+
+              // LÓGICA GRÁFICO
+              double hoursFromStart =
+                  data.dateFrom.difference(yesterday).inMinutes / 60.0;
+              tempSpots.add(FlSpot(hoursFromStart, bpm));
+            } else if (data.type == HealthDataType.BLOOD_OXYGEN) {
+              double val = value.numericValue.toDouble();
+              if (val <= 1.0) val = val * 100;
+              vitalsData[1]['value'] = val.round().toString();
+            } else if (data.type == HealthDataType.ACTIVE_ENERGY_BURNED) {
+              if (data.dateFrom.isAfter(midnight)) {
+                totalCalorias += value.numericValue.toDouble();
+              }
+            } else if (data.type == HealthDataType.STEPS) {
+              if (data.dateFrom.isAfter(midnight)) {
+                totalPasos += value.numericValue.toInt();
+              }
+            }
+          }
+        }
+        if (totalCalorias == 0 && totalPasos > 0) {
+          // Si Health Connect nos da 0 pero hay pasos, calculamos aprox.
+          totalCalorias = totalPasos * 0.04;
+        }
+
+        vitalsData[2]['value'] = totalCalorias.round().toString();
+        vitalsData[3]['value'] = totalPasos.toString();
+
+        chartSpots = tempSpots;
+        isLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +196,11 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         actions: [
+          // Botón para refrescar manualmente
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Color(0xFF7DC3DE)),
+            onPressed: _autorizarYLeerDatos,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: ElevatedButton.icon(
@@ -185,10 +223,11 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // --- GRID DE TARJETAS ---
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -208,19 +247,91 @@ class _HomePageState extends State<HomePage> {
                 );
               },
             ),
+
             const SizedBox(height: 20),
+
+            // --- CONTENEDOR DEL GRÁFICO ---
             Container(
-              height: 180,
+              height: 200, // Un poco más alto para que el gráfico respire
               width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFE5F4FB),
+                color: Colors.white, // Fondo blanco para resaltar el gráfico
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFFE5F4FB),
+                  width: 2,
+                ), // Borde sutil
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  ),
+                ],
               ),
-              child: const Center(
-                child: Text(
-                  'Espacio para gráfica',
-                  style: TextStyle(color: Colors.grey),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ritmo Cardíaco (24h)',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: chartSpots.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "Esperando datos...",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : LineChart(
+                            LineChartData(
+                              gridData: const FlGridData(
+                                show: false,
+                              ), // Sin cuadrícula para limpieza
+                              titlesData: const FlTitlesData(
+                                show: false,
+                              ), // Sin números en ejes
+                              borderData: FlBorderData(show: false),
+                              minX: 0,
+                              maxX: 24, // Eje X de 0 a 24 horas
+                              minY: 40,
+                              maxY: 160, // Rango de corazón
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: chartSpots,
+                                  isCurved: true, // Curva suave
+                                  color: const Color(0xFF7DC3DE),
+                                  barWidth: 3,
+                                  isStrokeCapRound: true,
+                                  dotData: const FlDotData(show: false),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    // Degradado bonito debajo de la línea
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        const Color(
+                                          0xFF7DC3DE,
+                                        ).withOpacity(0.4),
+                                        const Color(
+                                          0xFF7DC3DE,
+                                        ).withOpacity(0.0),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -230,6 +341,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// ... VitalCard se queda igual
 class VitalCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -250,54 +362,48 @@ class VitalCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: const Offset(2, 2),
-          ),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(2, 2)),
         ],
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: const Color(0xFF7DC3DE)),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-                fontSize: 16,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 40, color: const Color(0xFF7DC3DE)),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              fontSize: 14,
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                  color: Colors.black,
+                ),
               ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28,
-                    color: Colors.black,
-                  ),
+              const SizedBox(width: 4),
+              Text(
+                unit,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.grey,
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
